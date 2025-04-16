@@ -4,11 +4,12 @@ import os
 import signal
 import time
 from operator import length_hint
+from xml.etree import ElementTree
 
 import autoit
 from autoit.autoit import Properties as AutoitProps
 
-from Constants import LOG_VIEWER_EXECUTABLE, LOG_VIEWER_DIRECTORY
+from Constants import LOG_VIEWER_EXECUTABLE, LOG_VIEWER_SESSION_FILE
 
 logger = logging.getLogger(__name__)
 SHUTDOWN_DELAY_SECONDS = 10
@@ -26,9 +27,8 @@ class Launcher:
         logging.basicConfig(filename=self.log_file_path, filemode='w', level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(message)s')
 
-        self.log_viewer_pid = autoit.run(filename=f"{LOG_VIEWER_EXECUTABLE} {log_file}",
-                                         work_dir=str(LOG_VIEWER_DIRECTORY),
-                                         show_flag=AutoitProps.SW_SHOW)
+        edit_xml(LOG_VIEWER_SESSION_FILE, "FilePath", f"{log_file}")
+        self.log_viewer_pid = autoit.run(filename=f"{LOG_VIEWER_EXECUTABLE} {LOG_VIEWER_SESSION_FILE}")
 
         autoit.win_wait("[TITLE:SnakeTail; CLASS:WindowsForms10.Window.8.app.0.34f5582_r6_ad1]")
         time.sleep(1)
@@ -78,3 +78,26 @@ def action_to_flag(action) -> int:
             logger.error(f"Unknown action {action}\n")
             raise Exception(f"Unknown action {action}\n")
     return result
+
+
+def edit_xml(xml_file, element_tag, new_text=None, attribute_name=None, attribute_value=None):
+    """
+    Edits an XML file.
+
+    Args:
+        xml_file (str): Path to the XML file.
+        element_tag (str): Tag name of the element to edit.
+        new_text (str, optional): New text for the element. Defaults to None.
+        attribute_name (str, optional): Name of the attribute to edit. Defaults to None.
+        attribute_value (str, optional): New value for the attribute. Defaults to None.
+    """
+    tree = ElementTree.parse(xml_file)
+    root = tree.getroot()
+
+    for element in root.iter(element_tag):
+        if new_text is not None:
+            element.text = new_text
+        if attribute_name is not None and attribute_value is not None:
+            element.set(attribute_name, attribute_value)
+
+    tree.write(xml_file)

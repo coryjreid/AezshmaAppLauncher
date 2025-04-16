@@ -4,7 +4,8 @@ from pathlib import Path
 from urllib.request import urlopen
 from zipfile import ZipFile
 
-from Constants import ROOT_DIRECTORY, APPLICATION_DIRECTORY, LOG_VIEWER_DIRECTORY, DEFAULT_LOG_FILE
+from Constants import ROOT_DIRECTORY, APPLICATION_DIRECTORY, LOG_VIEWER_DIRECTORY, DEFAULT_LOG_FILE, \
+    LOG_VIEWER_SESSION_FILE, LOG_VIEWER_SESSION_FILE_CONTENT
 from Launcher import Launcher
 
 parser = argparse.ArgumentParser(prog="LauncherMain", description="Launches a number of processes in sequence")
@@ -42,6 +43,11 @@ def setup() -> None:
             "https://github.com/snakefoot/snaketail-net/releases/download/1.9.8/SnakeTail_v1.9.8.zip")
         zipfile = ZipFile(BytesIO(http_response.read()))
         zipfile.extractall(path=LOG_VIEWER_DIRECTORY)
+
+    if not LOG_VIEWER_SESSION_FILE.exists():
+        LOG_VIEWER_SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_VIEWER_SESSION_FILE, "w") as f:
+            f.write(LOG_VIEWER_SESSION_FILE_CONTENT)
 
     log_file = Path(log_file) if log_file is not None else DEFAULT_LOG_FILE
     if not log_file.exists():
