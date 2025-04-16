@@ -38,22 +38,35 @@ class Launcher:
 
         with open(self.programs_file) as json_file:
             programs = json.load(json_file)
+            self.logger.info(f"Programs file loaded successfully")
 
+            self.logger.info(f"Launching {len(programs)} programs")
+            count = 1
             for program in programs:
-                self.logger.info(f"Launching {program['name']}")
+                self.logger.info(f"({count}/{len(programs)}) Starting {program['name']}")
 
-                program_window = program["window"]
-                show_flag = action_to_flag(program_window["action"]) if program_window is not None or length_hint(
-                    program_window) != 0 else AutoitProps.SW_SHOW
-
-                pid = autoit.run(filename=program["executable"], work_dir=program["work_dir"], show_flag=show_flag)
-                time.sleep(5)
+                pid = autoit.run(filename=program["executable"], work_dir=program["work_dir"])
 
                 if pid != 0:
                     self.logger.info(f"Started {program["name"]} successfully; PID={pid}")
+                    count += 1
+
+                    program_window = program["window"]
+                    if program_window is not None or length_hint(program_window) == 2:
+                        self.logger.info(f"Waiting for {program["name"]} window")
+
+                        show_flag = action_to_flag(program_window["action"])
+                        autoit.win_wait(program_window["title"])  # wait for window to exist
+                        time.sleep(1)
+                        handle = autoit.win_get_handle(program_window["title"])
+                        autoit.win_set_state_by_handle(handle, show_flag)
+
+                        self.logger.info(f"Set {program["name"]} window state successfully")
+                        time.sleep(1)
+
                 else:
                     self.logger.error(f"Failed to start {program["name"]}; Exiting")
-                    raise Exception(f"Failed to start {program["name"]}; Exiting")
+                    exit(1)
 
         self.logger.info(f"Finished. Shutting down in {SHUTDOWN_DELAY_SECONDS} seconds")
         time.sleep(1)
@@ -68,15 +81,20 @@ class Launcher:
 
 
 def action_to_flag(action) -> int:
-    result = None
     match action:
         case "show":
             result = AutoitProps.SW_SHOWNORMAL
         case "hide":
             result = AutoitProps.SW_HIDE
+        case "minimize":
+            result = AutoitProps.SW_MINIMIZE
+        case "maximize":
+            result = AutoitProps.SW_MAXIMIZE
+        case "restore":
+            result = AutoitProps.SW_RESTORE
         case _:
-            logger.error(f"Unknown action {action}\n")
-            raise Exception(f"Unknown action {action}\n")
+            logger.error(f"Unsupported action {action}; Exiting")
+            exit(1)
     return result
 
 
