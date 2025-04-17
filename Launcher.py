@@ -9,7 +9,7 @@ from xml.etree import ElementTree
 import autoit
 from autoit.autoit import Properties as AutoitProps
 
-from Constants import LOG_VIEWER_EXECUTABLE, LOG_VIEWER_SESSION_FILE
+from Constants import LOG_VIEWER_EXECUTABLE, LOG_VIEWER_SESSION_FILE, PIDS_DIRECTORY
 
 logger = logging.getLogger(__name__)
 SHUTDOWN_DELAY_SECONDS = 10
@@ -43,29 +43,39 @@ class Launcher:
             self.logger.info(f"Launching {len(programs)} programs")
             count = 1
             for program in programs:
-                self.logger.info(f"({count}/{len(programs)}) Starting {program['name']}")
+                executable = program["executable"]
+                working_directory = program["work_dir"]
+                name = program["name"]
 
-                pid = autoit.run(filename=program["executable"], work_dir=program["work_dir"])
+                self.logger.info(f"({count}/{len(programs)}) Starting {name}")
+
+                pid = autoit.run(filename=executable, work_dir=working_directory)
 
                 if pid != 0:
-                    self.logger.info(f"Started {program["name"]} successfully; PID={pid}")
+                    self.logger.info(f"Started {name} successfully; PID={pid}")
                     count += 1
+
+                    pid_file = f"{PIDS_DIRECTORY}\\{name}.pid".replace(" ", "_")
+                    self.logger.info(f"Creating {name} PID file {pid_file}")
+                    with open(pid_file, "w") as f:
+                        f.write(str(pid))
+                        self.logger.info(f"Wrote {name} PID {pid} successfully")
 
                     program_window = program["window"]
                     if program_window is not None or length_hint(program_window) == 2:
-                        self.logger.info(f"Waiting for {program["name"]} window")
+                        window_title = program_window["title"]
+                        self.logger.info(f"Waiting for {name} window")
 
                         show_flag = action_to_flag(program_window["action"])
-                        autoit.win_wait(program_window["title"])  # wait for window to exist
-                        time.sleep(1)
-                        handle = autoit.win_get_handle(program_window["title"])
-                        autoit.win_set_state_by_handle(handle, show_flag)
+                        autoit.win_wait(window_title)  # wait for window to exist
+                        time.sleep(1) # give it a second to display
+                        window_handle = autoit.win_get_handle(window_title)
+                        autoit.win_set_state_by_handle(window_handle, show_flag)
 
-                        self.logger.info(f"Set {program["name"]} window state successfully")
+                        self.logger.info(f"Set {name} window state successfully")
                         time.sleep(1)
-
                 else:
-                    self.logger.error(f"Failed to start {program["name"]}; Exiting")
+                    self.logger.error(f"Failed to start {name}; Exiting")
                     exit(1)
 
         self.logger.info(f"Finished. Shutting down in {SHUTDOWN_DELAY_SECONDS} seconds")

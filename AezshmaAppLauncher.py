@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from zipfile import ZipFile
 
 from Constants import ROOT_DIRECTORY, APPLICATION_DIRECTORY, LOG_VIEWER_DIRECTORY, DEFAULT_LOG_FILE, \
-    LOG_VIEWER_SESSION_FILE, LOG_VIEWER_SESSION_FILE_CONTENT
+    LOG_VIEWER_SESSION_FILE, LOG_VIEWER_SESSION_FILE_CONTENT, PIDS_DIRECTORY
 from Launcher import Launcher
 
 parser = argparse.ArgumentParser(prog="LauncherMain", description="Launches a number of processes in sequence")
@@ -36,6 +36,9 @@ def setup() -> None:
 
     if not APPLICATION_DIRECTORY.exists():
         APPLICATION_DIRECTORY.parent.mkdir(parents=True, exist_ok=True)
+
+    if not PIDS_DIRECTORY.exists():
+        PIDS_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
     if not LOG_VIEWER_DIRECTORY.exists():
         LOG_VIEWER_DIRECTORY.parent.mkdir(parents=True, exist_ok=True)
